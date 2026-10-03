@@ -1,0 +1,898 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Carnation</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1F5E63">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #F2F0EC;
+    --surface: #FBFAF8;
+    --ink: #1D1A17;
+    --muted: #6B645C;
+    --line: #DAD4CB;
+    --accent: #1F5E63;
+    --accent-ink: #FFFFFF;
+    --stage: #E6E2DB;
+    --mask: 31, 94, 99;
+    --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+    --body: "Figtree", "Segoe UI", system-ui, sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #151719;
+      --surface: #1D2023;
+      --ink: #ECE8E2;
+      --muted: #A39C93;
+      --line: #33383C;
+      --accent: #74B6BC;
+      --accent-ink: #0E1A1B;
+      --stage: #0F1112;
+      --mask: 116, 182, 188;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #151719;
+    --surface: #1D2023;
+    --ink: #ECE8E2;
+    --muted: #A39C93;
+    --line: #33383C;
+    --accent: #74B6BC;
+    --accent-ink: #0E1A1B;
+    --stage: #0F1112;
+    --mask: 116, 182, 188;
+  }
+
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  .tones { max-width: 420px; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font: 15px/1.5 var(--body);
+    padding-inline: 16px;
+    padding-block: 20px 40px;
+  }
+  .app {
+    max-width: 1080px;
+    margin: 0 auto;
+    display: grid;
+    gap: 20px;
+  }
+  header { display: grid; gap: 4px; }
+  h1 {
+    font: 700 clamp(28px, 6vw, 40px)/1 var(--display);
+    letter-spacing: -0.02em;
+    margin: 0;
+  }
+  .lede { margin: 0; color: var(--muted); max-width: 60ch; text-wrap: pretty; }
+
+  .work {
+    display: grid;
+    gap: 20px;
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+  @media (min-width: 820px) {
+    .work { grid-template-columns: minmax(0, 1.25fr) minmax(300px, 1fr); }
+  }
+
+  /* Stage: before/after comparison */
+  .stage {
+    position: relative;
+    background: var(--stage);
+    border-radius: 10px;
+    overflow: hidden;
+    touch-action: pan-y;
+    user-select: none;
+    min-height: 240px;
+    display: grid;
+    place-items: center;
+  }
+  .frame { position: relative; display: grid; max-width: 100%; }
+  .stage canvas {
+    display: block;
+    grid-area: 1 / 1;
+    width: auto;
+    height: auto;
+    max-width: 100%;
+    max-height: 72vh;
+  }
+  #after { clip-path: inset(0 0 0 var(--split, 50%)); }
+  #maskView { pointer-events: none; }
+  .divider {
+    position: absolute;
+    top: 0; bottom: 0;
+    left: var(--split, 50%);
+    width: 2px;
+    margin-left: -1px;
+    background: #fff;
+    box-shadow: 0 0 0 1px rgba(0,0,0,.25);
+    pointer-events: none;
+  }
+  .knob {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 36px; height: 36px;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 6px rgba(0,0,0,.35);
+    display: grid; place-items: center;
+    color: #1D1A17;
+    font: 600 13px/1 var(--mono);
+  }
+  .tag {
+    position: absolute;
+    top: 10px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: rgba(20,20,20,.62);
+    color: #fff;
+    font: 500 11px/1.4 var(--mono);
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    pointer-events: none;
+  }
+  .tag.before { left: 10px; }
+  .tag.after { right: 10px; }
+  .busy {
+    position: absolute;
+    inset: auto 10px 10px 10px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    background: rgba(20,20,20,.72);
+    color: #fff;
+    font: 500 13px/1.4 var(--body);
+  }
+  .bar { height: 3px; background: rgba(255,255,255,.25); border-radius: 2px; margin-top: 6px; overflow: hidden; }
+  .bar > i { display: block; height: 100%; width: 0; background: #fff; transition: width .15s; }
+  .credit { margin: 6px 2px 0; font-size: 12px; color: var(--muted); }
+  .credit a { color: inherit; }
+
+  /* Controls */
+  .panel { display: grid; gap: 22px; }
+  .group { display: grid; gap: 10px; }
+  .label {
+    font: 500 11px/1.2 var(--mono);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    display: flex; justify-content: space-between; gap: 8px;
+  }
+  .label output { color: var(--ink); letter-spacing: 0; text-transform: none; }
+
+  .tones {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+  }
+  .tone {
+    appearance: none;
+    border: 0;
+    padding: 0;
+    background: none;
+    cursor: pointer;
+    display: grid;
+    gap: 4px;
+    justify-items: center;
+    color: var(--muted);
+    font: 500 11px/1 var(--mono);
+    font-variant-numeric: tabular-nums;
+  }
+  .tone .chip {
+    width: 100%;
+    aspect-ratio: 1;
+    max-width: 100%;
+    border-radius: 50%;
+    background: var(--c);
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.12);
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+    transition: outline-color .12s, transform .12s;
+  }
+  .tone[aria-pressed="true"] { color: var(--ink); }
+  .tone[aria-pressed="true"] .chip { outline-color: var(--accent); }
+  .tone .src {
+    font-size: 9px; letter-spacing: .04em; color: var(--accent);
+    visibility: hidden;
+  }
+  .tone.is-source .src { visibility: visible; }
+  .tone:focus-visible { outline: none; }
+  .tone:focus-visible .chip { outline-color: var(--ink); }
+  @media (hover: hover) { .tone:hover .chip { transform: scale(1.05); } }
+
+  .mine { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+  .mine .tone { width: 48px; }
+  .swatch {
+    width: 44px; height: 44px; flex: none;
+    border-radius: 50%;
+    background: var(--c, transparent);
+    box-shadow: inset 0 0 0 1px var(--line);
+  }
+  .picker {
+    position: fixed; inset: 0; z-index: 10;
+    background: var(--bg);
+    overflow: auto;
+    padding-inline: 16px;
+    padding-block: calc(16px + env(safe-area-inset-top, 0px)) calc(16px + env(safe-area-inset-bottom, 0px));
+  }
+  .picker-inner { max-width: 720px; margin: 0 auto; display: grid; gap: 14px; }
+  .picker-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .picker-head h2 { font: 700 24px/1.1 var(--display); margin: 0; }
+  .picker-stage {
+    position: relative; display: grid; place-items: center;
+    background: var(--stage); border-radius: 10px; padding: 8px; min-height: 200px;
+  }
+  #pickCanvas { display: block; max-width: 100%; max-height: 60vh; cursor: crosshair; }
+  .ring {
+    position: absolute; width: 30px; height: 30px; margin: -15px 0 0 -15px;
+    border: 2px solid #fff; border-radius: 50%;
+    box-shadow: 0 0 0 1px rgba(0,0,0,.55), inset 0 0 0 1px rgba(0,0,0,.55);
+    pointer-events: none;
+  }
+  .pick-result { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+  .pick-result p { margin: 0; flex: 1 1 200px; font-size: 14px; }
+  .btn:disabled { opacity: .45; cursor: default; }
+
+  input[type="range"] { width: 100%; accent-color: var(--accent); }
+  .scale-ends { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-top: -4px; }
+
+  .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .btn {
+    appearance: none;
+    border: 1px solid var(--accent);
+    background: var(--accent);
+    color: var(--accent-ink);
+    font: 600 14px/1 var(--body);
+    padding: 12px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .btn.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+  .btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .check { display: inline-flex; gap: 8px; align-items: center; cursor: pointer; font-size: 14px; }
+  .check input { accent-color: var(--accent); width: 18px; height: 18px; }
+
+  .readout {
+    border-top: 1px solid var(--line);
+    padding-top: 14px;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 6px 14px;
+    font-size: 13px;
+  }
+  .readout dt { color: var(--muted); }
+  .readout dd { margin: 0; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  .hint { font-size: 13px; color: var(--muted); margin: 0; max-width: 60ch; }
+  .error { color: #B3261E; }
+  :root[data-theme="dark"] .error { color: #F2B8B5; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .error { color: #F2B8B5; } }
+
+  .drop-hint {
+    position: absolute; inset: 0;
+    display: grid; place-items: center;
+    background: rgba(var(--mask), .35);
+    color: #fff; font: 600 18px var(--display);
+    pointer-events: none;
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header>
+    <h1>Carnation</h1>
+    <p class="lede">Voyez un vêtement sur la couleur de peau de votre choix. Seule la peau change&nbsp;: les pixels du vêtement restent identiques à la photo d'origine.</p>
+  </header>
+
+  <div class="work">
+    <div>
+      <div class="stage" id="stage">
+        <div class="frame">
+          <canvas id="before" aria-label="Photo d'origine"></canvas>
+          <canvas id="after" aria-label="Photo avec la couleur de peau modifiée"></canvas>
+          <canvas id="maskView" hidden aria-hidden="true"></canvas>
+          <div class="divider" id="divider"><div class="knob" aria-hidden="true">⇆</div></div>
+        </div>
+        <span class="tag before">Avant</span>
+        <span class="tag after">Après</span>
+        <div class="busy" id="busy">
+          <span id="busyText">Chargement du modèle de segmentation…</span>
+          <div class="bar"><i id="busyBar"></i></div>
+        </div>
+        <div class="drop-hint" id="dropHint" hidden>Déposez la photo ici</div>
+      </div>
+      <p class="credit" id="credit">Photo d'exemple&nbsp;: « Model in green dress », Sherry Zhang, <a href="https://commons.wikimedia.org/wiki/File:Model_in_green_dress.jpg" target="_blank" rel="noopener">CC BY 2.0</a>.</p>
+    </div>
+
+    <div class="panel">
+      <div class="group">
+        <div class="label"><span>Couleur de peau</span><output id="toneOut">Monk 8</output></div>
+        <div class="tones" id="tones" role="group" aria-label="Échelle Monk, du plus clair au plus foncé"></div>
+        <div class="mine">
+          <button type="button" class="tone" id="meTone" hidden aria-label="Ma couleur de peau"><span class="chip"></span><span>moi</span></button>
+          <button type="button" class="btn ghost" id="meBtn">Prendre ma couleur sur une photo</button>
+          <input type="file" id="meFile" accept="image/*" hidden>
+        </div>
+        <p class="hint">Échelle Monk (MST), 10 tons de 1 (le plus clair) à 10 (le plus foncé). Le repère <b style="color:var(--accent)">photo</b> indique le ton estimé de la peau d'origine. «&nbsp;Prendre ma couleur&nbsp;» utilise une de vos photos, qui reste sur votre téléphone.</p>
+      </div>
+
+      <div class="group">
+        <label class="label" for="fine"><span>Ajustement fin</span><output id="fineOut">0</output></label>
+        <input type="range" id="fine" min="-15" max="15" step="1" value="0">
+        <div class="scale-ends"><span>Plus foncé</span><span>Plus clair</span></div>
+      </div>
+
+      <div class="group">
+        <div class="label"><span>Photo</span></div>
+        <div class="row">
+          <button class="btn" id="pick" type="button">Choisir une photo</button>
+          <button class="btn ghost" id="pasteBtn" type="button">Coller une image</button>
+          <input type="file" id="file" accept="image/*" hidden>
+          <label class="check"><input type="checkbox" id="showMask"> Voir la zone détectée</label>
+        </div>
+        <p class="hint">Depuis un site marchand sur Android&nbsp;: appui long sur la photo du produit, <b>Partager l'image</b>, puis <b>Carnation</b>. Sinon, copiez l'image et touchez «&nbsp;Coller une image&nbsp;», ou choisissez une photo enregistrée ou une capture d'écran. Sur ordinateur&nbsp;: Ctrl+V ou glisser-déposer.</p>
+      </div>
+
+      <dl class="readout">
+        <dt>Peau détectée</dt><dd id="rCover">–</dd>
+        <dt>Ton d'origine</dt><dd id="rSource">–</dd>
+        <dt>Traitement</dt><dd id="rTime">–</dd>
+      </dl>
+      <p class="hint" id="status" role="status"></p>
+    </div>
+  </div>
+</div>
+
+<div class="picker" id="picker" hidden role="dialog" aria-modal="true" aria-labelledby="pickerTitle">
+  <div class="picker-inner">
+    <div class="picker-head">
+      <h2 id="pickerTitle">Ma couleur de peau</h2>
+      <button type="button" class="btn ghost" id="pickClose">Annuler</button>
+    </div>
+    <div class="picker-stage">
+      <canvas id="pickCanvas" aria-label="Votre photo : touchez votre peau"></canvas>
+      <div class="ring" id="ring" hidden></div>
+    </div>
+    <p class="hint">Touchez votre peau dans une zone bien éclairée, sans reflet ni ombre (joue, front, avant-bras). Une photo prise à la lumière du jour donne le résultat le plus juste.</p>
+    <div class="pick-result">
+      <span class="swatch" id="pickSwatch"></span>
+      <p id="pickInfo">Analyse de la photo…</p>
+      <button type="button" class="btn" id="pickUse" disabled>Utiliser cette couleur</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+// Opened as a local file (file://), the browser refuses to load files next to the page:
+// fall back to the public CDN copies of the same library and model (internet required).
+const FROM_FILE = !/^https?:$/.test(location.protocol);
+const CDN = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1";
+const MODEL_URL = "https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_multiclass_256x256/float32/latest/selfie_multiclass_256x256.tflite";
+
+// Monk Skin Tone scale (Google, CC BY 4.0), 1 = lightest, 10 = darkest.
+const MONK = ["#f6ede4","#f3e7db","#f7ead0","#eadaba","#d7bd96","#a07e56","#825c43","#604134","#3a312a","#292420"];
+const MAX_SIDE = 1400;
+const SKIN_CLASSES = [2, 3]; // body-skin, face-skin in selfie_multiclass_256x256
+
+const $ = (id) => document.getElementById(id);
+const els = {
+  stage: $("stage"), before: $("before"), after: $("after"), maskView: $("maskView"),
+  divider: $("divider"), busy: $("busy"), busyText: $("busyText"), busyBar: $("busyBar"),
+  tones: $("tones"), toneOut: $("toneOut"), fine: $("fine"), fineOut: $("fineOut"),
+  pick: $("pick"), file: $("file"), showMask: $("showMask"), credit: $("credit"),
+  rCover: $("rCover"), rSource: $("rSource"), rTime: $("rTime"), status: $("status"), dropHint: $("dropHint"),
+  meTone: $("meTone"), meBtn: $("meBtn"), meFile: $("meFile"), picker: $("picker"), pickClose: $("pickClose"),
+  pickCanvas: $("pickCanvas"), ring: $("ring"), pickSwatch: $("pickSwatch"), pickInfo: $("pickInfo"), pickUse: $("pickUse"),
+};
+
+// ---------- Colour maths (sRGB <-> CIELAB, D65) ----------
+const S2L = new Float32Array(256);
+for (let i = 0; i < 256; i++) { const v = i / 255; S2L[i] = v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }
+const L2S_N = 4096, L2S = new Uint8ClampedArray(L2S_N + 1);
+for (let i = 0; i <= L2S_N; i++) { const v = i / L2S_N; L2S[i] = Math.round(255 * (v <= 0.0031308 ? 12.92 * v : 1.055 * Math.pow(v, 1 / 2.4) - 0.055)); }
+const toS = (v) => L2S[v <= 0 ? 0 : v >= 1 ? L2S_N : (v * L2S_N) | 0];
+const fLab = (t) => t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116;
+
+function rgbToLab(r, g, b) {
+  const R = S2L[r], G = S2L[g], B = S2L[b];
+  const x = fLab((0.4124564 * R + 0.3575761 * G + 0.1804375 * B) / 0.95047);
+  const y = fLab(0.2126729 * R + 0.7151522 * G + 0.0721750 * B);
+  const z = fLab((0.0193339 * R + 0.1191920 * G + 0.9503041 * B) / 1.08883);
+  return [116 * y - 16, 500 * (x - y), 200 * (y - z)];
+}
+const hexToLab = (h) => rgbToLab(parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16));
+const MONK_LAB = MONK.map(hexToLab);
+
+// ---------- State ----------
+// tone: 1..10 (Monk scale) or "me" (colour picked on the user's own photo).
+const state = { tone: 8, fine: 0, split: 50, segmenter: null, img: null, alpha: null, stats: null, W: 0, H: 0, base: null, me: null };
+const ME_KEY = "carnation.me";
+try {
+  const saved = JSON.parse(localStorage.getItem(ME_KEY));
+  if (Array.isArray(saved?.lab) && saved.lab.length === 3) { state.me = saved; state.tone = "me"; }
+} catch {}
+const labToHex = (lab) => "#" + labToLinear(...lab).map((v) => toS(v).toString(16).padStart(2, "0")).join("");
+const nearestMonk = (L) => MONK_LAB.reduce((best, m, i) => Math.abs(m[0] - L) < Math.abs(MONK_LAB[best][0] - L) ? i : best, 0) + 1;
+
+// ---------- UI: tone chips ----------
+MONK.forEach((hex, i) => {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "tone";
+  b.id = "tone" + (i + 1);
+  b.style.setProperty("--c", hex);
+  b.setAttribute("aria-label", "Monk " + (i + 1));
+  b.innerHTML = `<span class="chip"></span><span>${i + 1}</span><span class="src">photo</span>`;
+  b.addEventListener("click", () => { state.tone = i + 1; syncTones(); render(); });
+  els.tones.appendChild(b);
+});
+function syncTones() {
+  [...els.tones.children].forEach((b, i) => b.setAttribute("aria-pressed", String(i + 1 === state.tone)));
+  els.meTone.hidden = !state.me;
+  if (state.me) els.meTone.style.setProperty("--c", labToHex(state.me.lab));
+  els.meTone.setAttribute("aria-pressed", String(state.tone === "me"));
+  els.toneOut.textContent = state.tone === "me" ? "Ma peau" : "Monk " + state.tone;
+}
+syncTones();
+
+els.fine.addEventListener("input", () => {
+  state.fine = +els.fine.value;
+  els.fineOut.textContent = (state.fine > 0 ? "+" : "") + state.fine;
+  scheduleRender();
+});
+els.showMask.addEventListener("change", () => { els.maskView.hidden = !els.showMask.checked; });
+
+// ---------- Before/after split ----------
+function setSplit(pct) {
+  state.split = Math.max(0, Math.min(100, pct));
+  els.stage.style.setProperty("--split", state.split + "%");
+}
+setSplit(50);
+let dragging = false;
+function splitFromEvent(e) {
+  const c = els.after.getBoundingClientRect();
+  setSplit(((e.clientX - c.left) / c.width) * 100);
+}
+els.stage.addEventListener("pointerdown", (e) => { dragging = true; els.stage.setPointerCapture(e.pointerId); splitFromEvent(e); });
+els.stage.addEventListener("pointermove", (e) => { if (dragging) splitFromEvent(e); });
+els.stage.addEventListener("pointerup", () => { dragging = false; });
+els.stage.addEventListener("pointercancel", () => { dragging = false; });
+
+// ---------- Busy overlay ----------
+function busy(text, pct) {
+  if (text == null) { els.busy.hidden = true; return; }
+  els.busy.hidden = false;
+  els.busyText.textContent = text;
+  els.busyBar.style.width = (pct == null ? 100 : pct) + "%";
+}
+function setStatus(text, isError) {
+  els.status.textContent = text || "";
+  els.status.classList.toggle("error", !!isError);
+}
+
+// ---------- Model loading ----------
+async function fetchWithProgress(urls, total, base64, onProgress) {
+  // Hosted copy: the model is split in two base64 text parts (the hosting only serves web file types).
+  const bins = [];
+  let loaded = 0;
+  for (const url of urls) {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("Téléchargement impossible : " + url + " (" + res.status + ")");
+    const reader = res.body.getReader();
+    const chunks = [];
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+      loaded += value.length;
+      onProgress(Math.min(99, Math.round((loaded / total) * 100)));
+    }
+    if (!base64) { bins.push(new Uint8Array(await new Blob(chunks).arrayBuffer())); continue; }
+    const bin = atob(await new Blob(chunks).text());
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    bins.push(bytes);
+  }
+  const buf = new Uint8Array(bins.reduce((s, b) => s + b.length, 0));
+  let off = 0;
+  for (const b of bins) { buf.set(b, off); off += b.length; }
+  return buf;
+}
+
+async function loadSegmenter() {
+  const base = FROM_FILE ? "" : new URL("./", document.baseURI).href;
+  const lib = FROM_FILE ? CDN + "/" : base + "lib/";
+  const { ImageSegmenter } = await import(lib + "vision_bundle.mjs");
+  const progress = (p) => busy("Chargement du modèle de segmentation… " + p + " %", p);
+  const model = FROM_FILE
+    ? await fetchWithProgress([MODEL_URL], 16371837, false, progress)
+    : await fetchWithProgress(
+        [base + "models/selfie_multiclass.part0.b64.txt", base + "models/selfie_multiclass.part1.b64.txt"],
+        21829120, true, progress);
+  busy("Initialisation…", 100);
+  const fileset = {
+    wasmLoaderPath: lib + "wasm/vision_wasm_internal.js",
+    wasmBinaryPath: lib + "wasm/vision_wasm_internal.wasm",
+  };
+  const opts = (delegate) => ({
+    baseOptions: { modelAssetBuffer: model, delegate },
+    runningMode: "IMAGE",
+    outputCategoryMask: false,
+    outputConfidenceMasks: true,
+  });
+  try {
+    return await ImageSegmenter.createFromOptions(fileset, opts("GPU"));
+  } catch (e) {
+    console.warn("GPU indisponible, passage au CPU", e);
+    return await ImageSegmenter.createFromOptions(fileset, opts("CPU"));
+  }
+}
+
+// ---------- Image loading ----------
+function loadImage(src) {
+  return new Promise((resolve, reject) => {
+    const im = new Image();
+    im.onload = () => resolve(im);
+    im.onerror = () => reject(new Error("Cette image ne peut pas être lue. Essayez un fichier JPEG ou PNG."));
+    im.src = src;
+  });
+}
+
+function drawBase(im) {
+  const s = Math.min(1, MAX_SIDE / Math.max(im.naturalWidth, im.naturalHeight));
+  const W = Math.round(im.naturalWidth * s), H = Math.round(im.naturalHeight * s);
+  for (const c of [els.before, els.after, els.maskView]) { c.width = W; c.height = H; }
+  const ctx = els.before.getContext("2d", { willReadFrequently: true });
+  ctx.drawImage(im, 0, 0, W, H);
+  els.after.getContext("2d", { willReadFrequently: true }).drawImage(els.before, 0, 0);
+  state.W = W; state.H = H;
+  state.base = ctx.getImageData(0, 0, W, H);
+  state.alpha = null;
+}
+
+// ---------- Segmentation -> soft skin alpha ----------
+function smoothstep(a, b, x) { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); }
+
+function boxBlur(src, W, H, r) {
+  const tmp = new Float32Array(W * H), out = new Float32Array(W * H), n = 2 * r + 1;
+  for (let y = 0; y < H; y++) {
+    let acc = 0; const row = y * W;
+    for (let x = -r; x <= r; x++) acc += src[row + Math.min(W - 1, Math.max(0, x))];
+    for (let x = 0; x < W; x++) {
+      tmp[row + x] = acc / n;
+      acc += src[row + Math.min(W - 1, x + r + 1)] - src[row + Math.max(0, x - r)];
+    }
+  }
+  for (let x = 0; x < W; x++) {
+    let acc = 0;
+    for (let y = -r; y <= r; y++) acc += tmp[Math.min(H - 1, Math.max(0, y)) * W + x];
+    for (let y = 0; y < H; y++) {
+      out[y * W + x] = acc / n;
+      acc += tmp[Math.min(H - 1, y + r + 1) * W + x] - tmp[Math.max(0, y - r) * W + x];
+    }
+  }
+  return out;
+}
+
+function sampleMask(mask, mw, mh, W, H) {
+  if (mw === W && mh === H) return mask;
+  const out = new Float32Array(W * H);
+  for (let y = 0; y < H; y++) {
+    const fy = Math.min(mh - 1, (y + 0.5) * mh / H - 0.5), y0 = Math.max(0, Math.floor(fy)), y1 = Math.min(mh - 1, y0 + 1), ty = Math.max(0, fy - y0);
+    for (let x = 0; x < W; x++) {
+      const fx = Math.min(mw - 1, (x + 0.5) * mw / W - 0.5), x0 = Math.max(0, Math.floor(fx)), x1 = Math.min(mw - 1, x0 + 1), tx = Math.max(0, fx - x0);
+      const a = mask[y0 * mw + x0] * (1 - tx) + mask[y0 * mw + x1] * tx;
+      const b = mask[y1 * mw + x0] * (1 - tx) + mask[y1 * mw + x1] * tx;
+      out[y * W + x] = a * (1 - ty) + b * ty;
+    }
+  }
+  return out;
+}
+
+function segment(canvas = els.before, W = state.W, H = state.H) {
+  const result = state.segmenter.segment(canvas);
+  const masks = result.confidenceMasks;
+  const mw = masks[0].width, mh = masks[0].height;
+  const skin = new Float32Array(mw * mh);
+  for (const k of SKIN_CLASSES) {
+    const m = masks[k].getAsFloat32Array();
+    for (let i = 0; i < skin.length; i++) skin[i] += m[i];
+  }
+  result.close?.();
+  const full = sampleMask(skin, mw, mh, W, H);
+  const hard = new Float32Array(W * H);
+  for (let i = 0; i < hard.length; i++) hard[i] = smoothstep(0.35, 0.75, full[i]);
+  return boxBlur(hard, W, H, Math.max(1, Math.round(Math.max(W, H) / 700)));
+}
+
+// ---------- Per-image analysis: reference colour of lit skin ----------
+// Model: pixel (linear light) = skin albedo x lighting. Changing the skin colour
+// = multiplying each channel by target / source albedo, which keeps shadows and highlights.
+function labToLinear(L, a, b) {
+  const fy = (L + 16) / 116, fx = fy + a / 500, fz = fy - b / 200;
+  const inv = (t) => { const t3 = t * t * t; return t3 > 0.008856 ? t3 : (t - 16 / 116) / 7.787; };
+  const X = 0.95047 * inv(fx), Y = inv(fy), Z = 1.08883 * inv(fz);
+  return [
+    Math.max(1e-4, 3.2404542 * X - 1.5371385 * Y - 0.4985314 * Z),
+    Math.max(1e-4, -0.9692660 * X + 1.8760108 * Y + 0.0415560 * Z),
+    Math.max(1e-4, 0.0556434 * X - 0.2040259 * Y + 1.0572252 * Z),
+  ];
+}
+
+// Reference colour of lit skin: pixels between the 50th and 90th luminance percentiles
+// (no deep shadows, no specular glints). Returns linear RGB + CIELAB, or null.
+function skinReference(d, alpha, n) {
+  const core = [];
+  for (let i = 0; i < n; i++) if (alpha[i] > 0.85) core.push(i);
+  if (core.length < 50) return null;
+  const lum = (i) => 0.2126 * S2L[d[i * 4]] + 0.7152 * S2L[d[i * 4 + 1]] + 0.0722 * S2L[d[i * 4 + 2]];
+  const ys = core.map(lum).sort((x, y) => x - y);
+  const lo = ys[Math.floor(ys.length * 0.5)], hi = ys[Math.floor(ys.length * 0.9)];
+  let c = 0, R = 0, G = 0, B = 0;
+  for (const i of core) {
+    const y = lum(i);
+    if (y < lo || y > hi) continue;
+    c++; R += S2L[d[i * 4]]; G += S2L[d[i * 4 + 1]]; B += S2L[d[i * 4 + 2]];
+  }
+  const ref = [R / c, G / c, B / c];
+  return { ref, lab: rgbToLab(toS(ref[0]), toS(ref[1]), toS(ref[2])) };
+}
+
+function analyse() {
+  const { W, H, alpha, base } = state;
+  const n = W * H;
+  let covered = 0;
+  for (let i = 0; i < n; i++) if (alpha[i] >= 0.005) covered++;
+  const r = skinReference(base.data, alpha, n);
+  state.stats = r && { ref: r.ref, L: r.lab[0], sourceTone: nearestMonk(r.lab[0]) };
+  return { covered: covered / n };
+}
+
+// ---------- Recolour ----------
+function render() {
+  if (!state.alpha || !state.stats) return;
+  const t0 = performance.now();
+  const { W, H, alpha, base, stats } = state;
+  const n = W * H;
+  const out = new ImageData(new Uint8ClampedArray(base.data), W, H);
+  const o = out.data;
+
+  const T = state.tone === "me" && state.me ? state.me.lab : MONK_LAB[state.tone - 1];
+  const tgt = labToLinear(Math.max(3, Math.min(97, T[0] + state.fine)), T[1], T[2]);
+  const gR = tgt[0] / stats.ref[0], gG = tgt[1] / stats.ref[1], gB = tgt[2] / stats.ref[2];
+
+  for (let i = 0; i < n; i++) {
+    const al = alpha[i];
+    if (al < 0.005) continue;
+    const p = i * 4;
+    const r = toS(S2L[o[p]] * gR), g = toS(S2L[o[p + 1]] * gG), b = toS(S2L[o[p + 2]] * gB);
+    o[p] = o[p] + (r - o[p]) * al;
+    o[p + 1] = o[p + 1] + (g - o[p + 1]) * al;
+    o[p + 2] = o[p + 2] + (b - o[p + 2]) * al;
+  }
+  els.after.getContext("2d", { willReadFrequently: true }).putImageData(out, 0, 0);
+  els.rTime.textContent = Math.round(performance.now() - t0) + " ms";
+}
+let raf = 0;
+function scheduleRender() { cancelAnimationFrame(raf); raf = requestAnimationFrame(render); }
+
+function drawMaskView() {
+  const { W, H, alpha } = state;
+  const img = new ImageData(W, H), d = img.data;
+  const [r, g, b] = getComputedStyle(document.documentElement).getPropertyValue("--mask").split(",").map(Number);
+  for (let i = 0; i < W * H; i++) {
+    const p = i * 4; d[p] = r; d[p + 1] = g; d[p + 2] = b; d[p + 3] = Math.round(alpha[i] * 170);
+  }
+  els.maskView.getContext("2d", { willReadFrequently: true }).putImageData(img, 0, 0);
+}
+
+// ---------- Pipeline ----------
+async function process() {
+  if (!state.segmenter || !state.img) return;
+  busy("Détection de la peau…", 100);
+  await new Promise((r) => setTimeout(r, 30));
+  const t0 = performance.now();
+  state.alpha = segment();
+  const { covered } = analyse();
+  drawMaskView();
+  els.rCover.textContent = (covered * 100).toFixed(1) + " % de l'image";
+  [...els.tones.children].forEach((b, i) => b.classList.toggle("is-source", state.stats && i + 1 === state.stats.sourceTone));
+  if (!state.stats) {
+    els.rSource.textContent = "–";
+    setStatus("Aucune peau détectée sur cette photo. Choisissez une photo où le mannequin est visible.", true);
+    els.after.getContext("2d", { willReadFrequently: true }).drawImage(els.before, 0, 0);
+  } else {
+    els.rSource.textContent = "Monk " + state.stats.sourceTone + " (L* " + state.stats.L.toFixed(0) + " sur les zones éclairées)";
+    setStatus("Segmentation en " + Math.round(performance.now() - t0) + " ms. Faites glisser la photo pour comparer avant et après.");
+    render();
+  }
+  busy(null);
+}
+
+async function openSource(src, credit) {
+  try {
+    state.img = await loadImage(src);
+    drawBase(state.img);
+    els.credit.hidden = !credit;
+    await process();
+  } catch (e) {
+    setStatus(e.message, true);
+    busy(null);
+  }
+}
+
+function openFile(file) {
+  if (!file || !file.type.startsWith("image/")) { setStatus("Ce fichier n'est pas une image.", true); return; }
+  openSource(URL.createObjectURL(file), false);
+}
+
+els.pick.addEventListener("click", () => els.file.click());
+$("pasteBtn").addEventListener("click", async () => {
+  try {
+    for (const item of await navigator.clipboard.read()) {
+      const type = item.types.find((t) => t.startsWith("image/"));
+      if (type) { openFile(new File([await item.getType(type)], "collee", { type })); return; }
+    }
+    setStatus("Le presse-papiers ne contient pas d'image. Sur le site, faites un appui long sur la photo puis « Copier l'image ».", true);
+  } catch {
+    setStatus("Ce navigateur ne permet pas de lire le presse-papiers. Utilisez « Partager l'image » ou « Choisir une photo ».", true);
+  }
+});
+els.file.addEventListener("change", () => { openFile(els.file.files[0]); els.file.value = ""; });
+document.addEventListener("paste", (e) => {
+  const item = [...(e.clipboardData?.items || [])].find((it) => it.type.startsWith("image/"));
+  if (item) openFile(item.getAsFile());
+});
+els.stage.addEventListener("dragover", (e) => { e.preventDefault(); els.dropHint.hidden = false; });
+els.stage.addEventListener("dragleave", () => { els.dropHint.hidden = true; });
+els.stage.addEventListener("drop", (e) => { e.preventDefault(); els.dropHint.hidden = true; openFile(e.dataTransfer.files[0]); });
+
+// ---------- My skin colour, picked on the user's own photo ----------
+const pick = { W: 0, H: 0, data: null, lab: null };
+
+function setPickResult(lab, info) {
+  pick.lab = lab;
+  els.pickSwatch.style.setProperty("--c", lab ? labToHex(lab) : "transparent");
+  els.pickInfo.textContent = lab ? info + " Proche de Monk " + nearestMonk(lab[0]) + "." : info;
+  els.pickUse.disabled = !lab;
+}
+
+function openPicker(im) {
+  const s = Math.min(1, 1200 / Math.max(im.naturalWidth, im.naturalHeight));
+  const W = Math.round(im.naturalWidth * s), H = Math.round(im.naturalHeight * s);
+  const c = els.pickCanvas;
+  c.width = W; c.height = H;
+  const ctx = c.getContext("2d", { willReadFrequently: true });
+  ctx.drawImage(im, 0, 0, W, H);
+  Object.assign(pick, { W, H, data: ctx.getImageData(0, 0, W, H).data, lab: null });
+  els.ring.hidden = true;
+  setPickResult(null, state.segmenter ? "Analyse de la photo…" : "Touchez votre peau sur la photo.");
+  els.picker.hidden = false;
+  document.body.style.overflow = "hidden";
+  els.pickClose.focus();
+  if (!state.segmenter) return;
+  // First guess: the same skin detection as for product photos.
+  setTimeout(() => {
+    try {
+      const r = skinReference(pick.data, segment(c, W, H), W * H);
+      if (pick.lab) return; // the user already tapped
+      if (r) setPickResult(r.lab, "Couleur détectée automatiquement. Touchez la photo pour choisir un autre endroit.");
+      else setPickResult(null, "Peau non détectée automatiquement. Touchez votre peau sur la photo.");
+    } catch (e) {
+      console.warn(e);
+      setPickResult(null, "Touchez votre peau sur la photo.");
+    }
+  }, 50);
+}
+
+function closePicker() {
+  els.picker.hidden = true;
+  document.body.style.overflow = "";
+  els.meBtn.focus();
+}
+
+els.meTone.addEventListener("click", () => { state.tone = "me"; syncTones(); render(); });
+els.meBtn.addEventListener("click", () => els.meFile.click());
+els.meFile.addEventListener("change", async () => {
+  const f = els.meFile.files[0];
+  els.meFile.value = "";
+  if (!f || !f.type.startsWith("image/")) return;
+  try { openPicker(await loadImage(URL.createObjectURL(f))); }
+  catch (e) { setStatus(e.message, true); }
+});
+els.pickClose.addEventListener("click", closePicker);
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !els.picker.hidden) closePicker(); });
+
+els.pickCanvas.addEventListener("click", (e) => {
+  const c = els.pickCanvas, r = c.getBoundingClientRect();
+  const x = Math.round(((e.clientX - r.left) / r.width) * pick.W);
+  const y = Math.round(((e.clientY - r.top) / r.height) * pick.H);
+  // Average a small disc around the touch point, in linear light.
+  const rad = Math.max(3, Math.round(Math.max(pick.W, pick.H) / 150));
+  let n = 0, R = 0, G = 0, B = 0;
+  for (let yy = Math.max(0, y - rad); yy <= Math.min(pick.H - 1, y + rad); yy++) {
+    for (let xx = Math.max(0, x - rad); xx <= Math.min(pick.W - 1, x + rad); xx++) {
+      if ((xx - x) ** 2 + (yy - y) ** 2 > rad * rad) continue;
+      const p = (yy * pick.W + xx) * 4;
+      R += S2L[pick.data[p]]; G += S2L[pick.data[p + 1]]; B += S2L[pick.data[p + 2]]; n++;
+    }
+  }
+  if (!n) return;
+  els.ring.style.left = c.offsetLeft + (e.clientX - r.left) + "px";
+  els.ring.style.top = c.offsetTop + (e.clientY - r.top) + "px";
+  els.ring.hidden = false;
+  setPickResult(rgbToLab(toS(R / n), toS(G / n), toS(B / n)), "Couleur prise à l'endroit touché.");
+});
+
+els.pickUse.addEventListener("click", () => {
+  if (!pick.lab) return;
+  state.me = { lab: pick.lab.map((v) => Math.round(v * 10) / 10) };
+  try { localStorage.setItem(ME_KEY, JSON.stringify(state.me)); } catch {}
+  state.tone = "me";
+  syncTones();
+  closePicker();
+  render();
+  setStatus("Votre couleur de peau est enregistrée sur ce téléphone. Votre photo n'est pas conservée.");
+});
+
+// ---------- Installable app (PWA) ----------
+// Only on a real website: gives offline use and the "Share > Carnation" entry on Android.
+if ("serviceWorker" in navigator && !FROM_FILE) {
+  navigator.serviceWorker.register("sw.js").catch((e) => console.info("Service worker non disponible ici :", e.message));
+}
+
+// Image received through Android's "Share" menu (stored by sw.js).
+async function takeSharedImage() {
+  if (!new URLSearchParams(location.search).has("shared") || !("caches" in window)) return null;
+  history.replaceState(null, "", location.pathname);
+  try {
+    const cache = await caches.open("carnation-share");
+    const res = await cache.match("shared-image");
+    if (!res) return null;
+    await cache.delete("shared-image");
+    return await res.blob();
+  } catch { return null; }
+}
+
+// ---------- Boot ----------
+(async () => {
+  const shared = await takeSharedImage();
+  if (shared) {
+    els.credit.hidden = true;
+    const im = await loadImage(URL.createObjectURL(shared)).catch(() => null);
+    if (im) { state.img = im; drawBase(im); }
+  }
+  // A local file page cannot read the pixels of another local image (browser security),
+  // so the sample photo is only shown when the page is served over http(s).
+  const samplePromise = FROM_FILE || shared
+    ? Promise.resolve(els.credit.hidden = FROM_FILE || els.credit.hidden)
+    : loadImage("samples/green.jpg").then((im) => { state.img = im; drawBase(im); }).catch(() => {});
+  try {
+    state.segmenter = await loadSegmenter();
+  } catch (e) {
+    console.error(e);
+    busy(null);
+    setStatus("Le modèle de segmentation n'a pas pu démarrer : " + e.message, true);
+    return;
+  }
+  await samplePromise;
+  if (!state.img) { busy(null); setStatus("Modèle prêt. Choisissez une photo pour commencer."); return; }
+  await process();
+})();
+</script>
+</body>
+</html>
